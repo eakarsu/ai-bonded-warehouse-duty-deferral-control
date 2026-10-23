@@ -1,0 +1,7 @@
+import test from "node:test"; import assert from "node:assert/strict";
+process.env.OPENROUTER_API_KEY=""; delete process.env.OPENROUTER_API_KEY;
+import {filterRecords,recordsToCsv,buildInsights} from "../featurePack.mjs";
+const rows=[{id:1,reference:"A-1",title:"Alpha case",status:"Open",owner:"Sam",risk:"High",due_date:"2020-01-01",amount:100,payload:{evidenceState:"Incomplete"}},{id:2,reference:"B-2",title:"Beta",status:"Closed",owner:"Jo",risk:"Low",due_date:"2030-01-01",amount:0,payload:{evidenceState:"Complete"}}];
+test("search/filter on main list",()=>{assert.equal(filterRecords(rows,{q:"alpha"}).length,1);assert.equal(filterRecords(rows,{status:"Closed"})[0].reference,"B-2");assert.equal(filterRecords(rows,{risk:"Low"}).length,1);assert.equal(filterRecords(rows,{q:"missing"}).length,0);});
+test("CSV/JSON export shape preserves 0",()=>{const csv=recordsToCsv(rows);assert.ok(csv.includes("A-1"));assert.ok(csv.split("\n")[2].includes(",0"));assert.equal(JSON.parse(JSON.stringify(rows))[1].amount,0);});
+test("offline insights labelled aiGenerated:false preserving false/0/empty",()=>{const r=buildInsights({id:"f1",title:"Feature"},[]);assert.equal(r.aiGenerated,false);assert.equal(r.sections[0].metrics.total,0);assert.equal(r.sections[0].metrics.hasHighRisk,false);const r2=buildInsights({id:"f1",title:"Feature"},rows);assert.equal(r2.insights.length,3);assert.equal(r2.sections[2].metrics.incompleteEvidence,1);});
